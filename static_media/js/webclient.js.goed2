@@ -1,0 +1,394 @@
+//////////////////////////////////////////////////////////////////////////////
+// Global settings 
+//////////////////////////////////////////////////////////////////////////////
+
+// Need to specify more
+var deviceId;
+var logLevel = 1; // 0 = DEBUG, 1 = INFO, 2 = WARN, 3 = ERROR, 4 = OFF
+var workerDelay = 5000;
+var callWorkerDelay = 250;
+
+var magnetQuery = '/0/wishcomponent/list/2/';
+var magnetAddQuery = '/wish/add/?comp1=1&comp2=2&comp3=';
+var magnetDeleteQuery = '/wish/delete/';
+var magnetListQuery = '/wish/list/';
+
+var userAddQuery = '/user/add/';
+var userSetPosQuery = '/user/setpos/';
+var userViewQuery = '/user/get/';
+var userUpdateQuery = '/user/update/';
+
+var matchQuery = '/match/list/';
+
+var actionQuery = '/action/do/';
+// url(r'^%s/action/do/%s/?$' % (UID, ACTION),
+    
+// device_id, secret and device_os are all mandatory
+// secret must be at least 12 characters long.
+// device_os must be "iOS".
+
+//////////////////////////////////////////////////////////////////////////////
+// Work in progress
+//////////////////////////////////////////////////////////////////////////////
+
+var matchIgnoreList = [];
+
+function matchAction(obj) {
+    console.log('do match action');
+    console.log(obj.data);
+
+    function successFunction (data, textStatus, jqXHR) {
+        if (data.Success == 'True') {
+            log("User with deviceId = " + deviceId + " added", 1); 
+        } else {
+            log(data.Error, 0); 
+        }
+    }
+
+    if (obj.data[1] == 'ignore') {
+        matchIgnoreList.push(obj.data[0]);
+    }
+    console.log(matchIgnoreList);
+
+    var url = '/' + deviceId + actionQuery + obj.data[0] + '/?reply=' + obj.data[1];
+
+    console.log(url);
+    log('Checking user for deviceId ' + deviceId, 1);
+    callQueue.push([url, successFunction]);
+}
+
+function getMatchList() {
+    function successFunction (data, textStatus, jqXHR) {
+        // Clear the old list
+        $("#matchTable").find("tr:gt(0)").remove();
+
+        if (data.Success =='True') {
+            for (result in data.Results) {
+                result = data.Results[result];
+                if (matchIgnoreList.indexOf(result.pendingactionid) > -1) { continue; }
+                
+                var row = $('<tr>').append( $('<td>').html(result.wish) );
+
+                for (buttonId in result['buttons']) {
+                    button = result['buttons'][buttonId];
+                    console.log(buttonId +' | '+ button.key +' | '+ button.label +' | '+
+                                result.pendingaction +' | '+ result.pendingactionid +' | '+ result.wishid);
+
+                    var btn = $('<button>').attr('id', button.key +'_'+ buttonId)
+                        .text(button.label).click(matchAction)
+
+                    $('<td>').append(
+                        $('<button>').attr('id', button.key +'_'+ result.id).text(button.label)
+                        .click([result.pendingactionid, button.key], matchAction)
+                        ).appendTo(row);
+                }
+
+                row.appendTo('#matchTable');
+
+                /*
+                buttons: Array[3]
+                    0: Object
+                        key: "ignore"
+                        label: "Ignore"
+                    1: Object
+                        key: "meeting"
+                        label: "Corner meeting"
+                    2: Object
+                        key: "facebook"
+                        label: "Facebook connect"
+                id: 127
+                pendingaction: "1"
+                pendingactionid: 348
+                suggestion: ""
+                wish: "Coffee"
+                wishid: 3
+                your_status: "makeSuggestion"
+                */
+            }
+
+            log('Got match list for device ' + deviceId, 1);
+        } else {
+            log(data.Error, 0);
+        }
+    }
+        
+    if (typeof deviceId === "undefined") { return }
+
+    var url = '/' + deviceId + matchQuery;
+    log('Getting match list for deviceId ' + deviceId, 1);
+    callQueue.push([url, successFunction]);
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+// General stuff
+//////////////////////////////////////////////////////////////////////////////
+function registerHandlers() {
+    console.log('Registering event handlers');
+
+    // Device ID radio buttons
+    $('*[id*=idSelect]').change(selectDeviceId);
+
+    // User wants to add a Magnet
+    $('#addMagnet').click(addMagnet);
+
+    $('#setLocation').click(setLocation);
+}
+
+function selectDeviceId(obj) {
+    deviceId = obj.target.value;
+    getUserInfo(loadMagnetList);
+    ensureVisibility()
+}
+
+function ensureVisibility() {
+    $('#left').css('display', 'block');
+    $('#middle').css('display', 'block');
+    $('#footer').css('display', 'block');
+}
+
+var workersTimeout;
+function workerFunction() {
+    getMatchList();
+    
+    workersTimeout = setTimeout(workerFunction, workerDelay);
+}
+
+$(document).ready(function() {
+    log('Document ready', 1);
+
+    registerHandlers();
+    loadMagnets();
+    setupMap();
+    workerFunction();
+    // For now we only need 1 callWorker
+    callWorker(callWorkerTimeouts[0]);
+
+    // We need a supervisor worker
+});
+
+
+//////////////////////////////////////////////////////////////////////////////
+// MVP API stuff
+//////////////////////////////////////////////////////////////////////////////
+var callWorkerTimeouts = []
+var callQueue = [];
+
+function callWorker(callWorkerTimeout) {
+    clearTimeout(callWorkerTimeout);
+
+    function doAjaxCall(item) {
+        $.ajax({
+            type: 'GET',
+            url: item[0],
+            dataType: 'json',
+            success: item[1],
+            error: item[2],
+            complete: function(jqXHR, textStatus) {
+                callWorkerTimeout = setTimeout(callWorker, callWorkerDelay, callWorkerTimeout);
+            },
+        });
+    }
+
+    try {
+        var item = callQueue.splice(0, 1)[0];
+        if (item.length < 3) {
+            item[2] = ajaxError;
+        }
+        doAjaxCall(item);
+    } catch(err) {
+        callWorkerTimeout = setTimeout(callWorker, callWorkerDelay, callWorkerTimeout);
+    }
+}
+
+// XXX TODO Retrieve token ??
+function getUserInfo(func) {
+    function successFunction(data, textStatus, jqXHR) {
+        if (data.Success =='True') {
+            var lat = data['latitude'];
+            var lon = data['longitude'];
+            if (lat!=0 || lon!=0) { 
+                var latlng = new google.maps.LatLng(lat, lon);
+                placeMarker(latlng);
+                map.setCenter(latlng)
+            } else {
+                $('#latInput').val('');
+                $('#lonInput').val('');
+            }
+        } else {
+            addUser();
+            $('#latInput').val('');
+            $('#lonInput').val('');
+        }
+        func()
+    }       
+ 
+    var url = '/' + deviceId + userViewQuery + deviceId + '/';
+    log('Getting user info for deviceId ' + deviceId, 1);
+    callQueue.push([url, successFunction]);
+}
+
+function addUser() {
+    function successFunction(data, textStatus, jqXHR) {
+        if (data.Success == 'True') {
+            log("User with deviceId = " + deviceId + " added", 1); 
+        } else {
+            log(data.Error, 0); 
+        }
+    }
+
+    var url = '/' + deviceId + userAddQuery;
+    log('Checking user for deviceId ' + deviceId, 1);
+    callQueue.push([url, successFunction]);
+}
+
+function setLocation() {
+    function successFunction(data, textStatus, jqXHR) {
+        if (data.Success == 'True') {
+            log("User position set for device " + deviceId, 1); 
+        } else {
+            log(data.Error, 0); 
+        }
+    }
+
+    var lat = $('#latInput').val();
+    var lon = $('#lonInput').val();
+    var url = '/' + deviceId + userSetPosQuery + lat + ',' + lon + '/';
+    
+    if (typeof deviceId === "undefined") { return }
+    if ((lat=='') || (lon=='') ) { return }
+
+    log("Setting location to " + lat + ', ' + lon + "for device " + deviceId, 1);
+    callQueue.push([url, successFunction]);
+}
+
+function loadMagnets() {
+    function successFunction(data, textStatus, jqXHR) {
+        log('Loaded magnets', 1);
+
+        $('#magnetSelect').find('option').remove();
+        results = data.Results;
+        for (result in results) {
+            result = results[result];
+            var option = '<option value="' + result.id + '">' + result.name + '</option>';
+            $(option).appendTo('#magnetSelect'); 
+        }
+    }
+
+    var url = magnetQuery;
+    log("Loading Magnets from " + url, 1);
+    callQueue.push([url, successFunction]);
+}
+
+function addMagnet() {
+    function successFunction(data, textStatus, jqXHR) {
+        if (data.Success == 'True') {
+            log(data.Message, 1); 
+        } else {
+            log(data.Error, 1); 
+        }
+        loadMagnetList();
+    }
+
+    if (typeof deviceId === "undefined") {
+        return
+    }
+
+    var magnetId = $('#magnetSelect').val();
+    var url = '/' + deviceId + magnetAddQuery + magnetId;
+    log("Adding magnet " + magnetId + " for device " + deviceId, 1);
+    callQueue.push([url, successFunction]);
+}
+
+function removeMagnet(obj) {
+    function successFunction(data, textStatus, jqXHR) {
+        if (data.Success == 'True') {
+            log(data.Message, 0); 
+        } else {
+            log("Error deleting Magnet " + obj.data + " for device " + deviceId, 1);
+        }
+        loadMagnetList();
+    }
+
+    var url = '/' + deviceId + magnetDeleteQuery + obj.data + '/';
+    log("Deleting Magnet " + obj.data + " for device " + deviceId, 1);
+    callQueue.push([url, successFunction]);
+}
+
+function loadMagnetList() {
+    function successFunction(data, textStatus, jqXHR) {
+        // Clear the old list
+        $("#magnetTable").find("tr:gt(0)").remove();
+            
+        if (data.Success == 'True') {
+            // Fill the list with found values
+            for (result in data.Results) {
+                result = data.Results[result];
+                $('<tr>')
+                    .append( $('<td>').html(result[3]).attr('colspan', 2) )
+                    .append( $('<button>').attr('id', 'removeMagnet' + result['id'])
+                        .click(result['id'], removeMagnet).attr('type', 'button').text('X'))
+                    .appendTo('#magnetTable');
+            }
+            log("Loaded MagnetList for device " + deviceId, 1);
+        } else {
+            log("No Magnets listed for device " + deviceId, 1); 
+        }
+    }
+
+    var url = '/' + deviceId + magnetListQuery;
+    log("Loading MagnetList for device " + deviceId + " from " + url, 1);
+    callQueue.push([url, successFunction]);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Google Maps stuff
+//////////////////////////////////////////////////////////////////////////////
+var marker;
+var map;
+
+function placeMarker(location) {
+    if (marker == undefined) {
+        marker = new google.maps.Marker({ position: location, map: map, });
+    } else {
+        marker.setPosition(location);
+    }
+
+    $('#latInput').val(location.Pa);
+    $('#lonInput').val(location.Qa);
+}
+
+function setupMap() {
+    var latlng = new google.maps.LatLng(50.92953250000667, 6.968127250671387);
+    var mapOptions = {
+        zoom: 10,
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        center: latlng
+    };
+
+    map = new google.maps.Map(document.getElementById("map"), mapOptions);
+
+    google.maps.event.addListener(map, 'click', function(event) {
+        placeMarker(event.latLng);
+    });
+};
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Helper functions
+//////////////////////////////////////////////////////////////////////////////
+function log(message, level) {
+    if (level >= logLevel) {
+        console.log(message);
+    }
+}
+
+function ajaxError(xhr, status) {
+    log(status, 5);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Old
+//////////////////////////////////////////////////////////////////////////////
+

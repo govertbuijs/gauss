@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title>API Call documentation</title>
+    <style type="text/css">
+        li.call {font-size: 18px;}
+        li.parameter {font-size: 14px;}
+        span.description {font-size: 12px;}
+    </style>
+</head>
+<body>
+<ul>
+    <li>User
+        <ul>
+            <li class=call>&#060;uid>/user/get/&#060;uid2>/
+                <ul>
+                    <li class=parameter>uid: ID of the accessing user</li>
+                    <li class=parameter>uid2: ID of the accessed user</li>
+                </ul>
+            </li>
+            <li class=call>&#060;uid>/user/add/
+                <ul>
+                    <li class=parameter>uid: ID of the user to add</li>
+                </ul>
+            </li>
+            <li class=call>&#060;uid>/user/setpos/&#060;lat>,&#060;long>/<br>
+                <span class=description>Update the User position. Can trigger a Match</span>
+                <ul>
+                    <li class=parameter>uid: ID of the user to add</li>
+                    <li class=parameter>lat: Latitude (decimal)</li>
+                    <li class=parameter>long: Longitude (decimal)</li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+    <li>Wish<br>
+        <span class=description>Something a User wants to do, consists of 3 WishComponents</span>
+        <ul>
+            <li class=call>&#060;uid>/wish/list/
+                <ul>
+                    <li class=parameter>uid: ID of the accessing user</li>
+                </ul>
+            </li>
+            <li class=call>&#060;uid>/wish/add/?comp1=&#060;componentId>&comp2=&#060;componentId>&comp3=&#060;componentId>
+                <ul>
+                    <li class=parameter>uid: ID of the accessing user</li>
+                    <li class=parameter>comp1-3: IDs of the wish components</li>
+                </ul>
+            </li>
+            <li class=call>&#060;uid>/wish/delete/&#060;wishId>
+                <ul>
+                    <li class=parameter>uid: ID of the accessing user</li>
+                    <li class=parameter>wishId: ID of the wish the user wants to remove or "all" to remove all wishes</li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+    <li>WishComponent
+        <ul>
+            <li class=call>&#060;uid>/wishcomponent/list/&#060;follows>/
+                <ul>
+                    <li class=parameter>uid: ID of the accessing user</li>
+                    <li class=parameter>follows: ID of predecessing component. "0" if first</li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+    <li>Match<br>
+        <span class=description>When 2 Users with the same wish are within range, a match is initiated</span>
+        <ul>
+            <li class=call>&#060;uid>/match/list/<br>
+                <span class=description>List all the currently active Matches of a User, includes todo Action</span>
+                <ul>
+                    <li class=parameter>uid: ID of the accessing user</li>
+                </ul>
+            </li>
+            <li class=call>&#060;uid>/match/getmeetingspot/&#060;matchId>/
+                <ul>
+                    <li class=parameter>uid: ID of the accessing user</li>
+                    <li class=parameter>matchId: ID of the Match we want to find a spot for</li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+    <li>Action<br>
+        <span class=description>To complete the matching, we need the User to perform actions: this is where</span>
+        <ul>
+            <li class=call>&#060;uid>/action/do/&#060;actionId>/?reply=&#060;reply>
+                <ul>
+                    <li class=parameter>uid: ID of the accessing user</li>
+                    <li class=parameter>actionId: ID of the Action we want to complete</li>
+                    <li class=parameter>reply: reply</li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<html>
+  <head>
+    <title>Simple webclient</title>
+
+    <script type="text/javascript"
+            src="http://maps.google.com/maps/api/js?sensor=false"></script>
+
+    <script src="/static_media/js/jquery-1.6.2.min.js"></script>
+    <script src="/static_media/js/jquery-ui.min.js"></script>
+    <script src="/static_media/js/webclient.js"></script>
+
+    <link href="/static_media/css/webclient.css" rel="stylesheet" type="text/css"/> 
+  </head>
+  <body>
+    <div id="header">
+      <div id="selectDevice">
+        Select your Device ID
+        <input type="radio" name="idSelect" value="0" id="idSelect0"/> Id 0
+        &nbsp;
+        <input type="radio" name="idSelect" value="1" id="idSelect1"/> Id 1
+        &nbsp;
+        <input type="radio" name="idSelect" value="2" id="idSelect2"/> Id 2
+        &nbsp;
+        <input type="radio" name="idSelect" value="3" id="idSelect2"/> Id 3
+        &nbsp;
+        <button id="toggleLocalLog" >Toggle local log</button>
+      </div>
+    </div>
+
+    <div id="left">
+      <table id="magnetTable">
+        <tr>
+          <th>Magnets</th>
+          <th><select id="magnetSelect"/></th>
+          <th><button id="addMagnet" type="button">Add Magnet</button></th>
+        </tr>
+      </table>
+    </div>
+
+    <div id="middle">
+      <table id="matchTable">
+        <tr><th>Matches</th></tr>
+      </table>
+    </div>
+
+    <div id="content0">
+      <b>Chat</b>
+      <div id="chatList"></div>
+      <input id="chatInput">
+      <button id="chatSend" type="button">Send</button>
+    </div>
+
+    <div id="content1">
+      <b>Messages</b>
+      <div id="messageList"></div>
+    </div>
+    <div id="content2">
+      <b>Local log</b>
+      <div id="localLog"></div>
+    </div>
+
+    <div id="footer">
+      Latitude : <input type="text" id="latInput"/>
+      Longtitude : <input type="text" id="lonInput"/>
+      <button id="setLocation" type="button">Set location</button>
+      <div align="left" id="googleMap" style="width:400px; height:400px; margin-top: 10px;"/>
+    </div>
+  </body>
+</html>

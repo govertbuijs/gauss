@@ -1,0 +1,79 @@
+/* Global defines */
+body {
+  margin: 5px;
+  padding: 5px;
+  overflow: hidden;
+}
+th {
+  text-align: left;
+}
+
+/* Page layout defines */
+div#header {
+  clear: both;
+  height: 25px;
+}
+div#left {
+  display: none;
+  float: left;
+  width: 275px;
+}
+div#middle {
+  display: none;
+  float: left;
+  height: 200px;    
+}
+div#right {
+  display: none;
+  float: left;
+  width: 500px;
+}
+div#content0 {
+  display: none;
+  clear: both;
+  padding: 0 0 20px 0;
+}
+div#content1 {
+  display: none;
+  clear: both;
+  padding: 0 0 20px 0;
+}
+div#content2 {
+  display: none;
+  clear: both;
+  padding: 0 0 20px 0;
+}
+div#footer {
+  display: none;
+  clear: both;
+}
+
+/* Item specific defines*/
+div#messageList {
+  overflow: auto;
+  min-height: 50px;    
+  max-height: 150px;
+}
+div#chatList {
+  overflow: auto;
+  border-style: solid;
+  border-width: 1px;
+  min-height: 50px;    
+  max-height: 250px;
+  width: 500px;
+}
+input#chatInput {
+  width: 448;
+}
+button#chatSend {
+  width: 50px;
+}
+div#localLog {
+  overflow: auto;
+  min-height: 50px;
+  max-height: 152px;
+}
+button#toggleLocalLog {
+  display: none;
+  float: right;
+}
