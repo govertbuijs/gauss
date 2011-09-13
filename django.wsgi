@@ -7,7 +7,8 @@ ROOT_DIR = '/'.join(ROOT_DIR.split('/')[:-1])
 activate_this = os.path.join(ROOT_DIR, 'bin/activate_this.py')
 execfile(activate_this, dict(__file__=activate_this))
 
-sys.path.append( os.path.join(ROOT_DIR, 'lib/python2.7/site-packages/django') )
+django_lib = 'lib/python2.6/site-packages/Django-1.3-py2.6.egg/django/'
+sys.path.append( os.path.join(ROOT_DIR, django_lib) )
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'gauss.settings'
 os.environ['PYTHON_EGG_CACHE'] = os.path.join(ROOT_DIR, 'eggs')
