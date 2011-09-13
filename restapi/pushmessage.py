@@ -32,14 +32,13 @@ class APNSProtocol(Protocol):
 
 class APNSClientFactory(ClientFactory):
     def buildProtocol(self, addr):
-        print "Connected to APNS Server %s:%u" % (addr.host, addr.port)
         return APNSProtocol()
 
     def clientConnectionLost(self, connector, reason):
-        print "Lost connection. Reason: %s" % reason
+        pass
 
     def clientConnectionFailed(self, connector, reason):
-        print "Connection failed. Reason: %s" % reason
+        pass
 
 if __name__ == '__main__':
     reactor.connectSSL(APNS_SERVER_HOSTNAME, 

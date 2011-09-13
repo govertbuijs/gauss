@@ -1,4 +1,3 @@
-import pprint
 from django.db import models
 from django.conf import settings
 
@@ -92,7 +91,6 @@ class iPhone(models.Model):
             c.connect((host_name, 2195))
             c.write(msg)
             c.close()
-            print 'Push message sent'
 
         return True
 
@@ -107,10 +105,6 @@ class iPhone(models.Model):
                             ssl_version=ssl.PROTOCOL_SSLv3,
                             certfile=settings.IPHONE_APN_PUSH_CERT)
         c.connect((host_name, 2196))
-        print repr(c.getpeername())
-        print c.cipher()
-        print pprint.pformat(c.getpeercert())
-        print ('feedback: ' + c.read())
         c.close()
         return True
 

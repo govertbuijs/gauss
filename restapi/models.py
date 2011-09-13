@@ -87,11 +87,9 @@ class User(models.Model):
             phone.udid=self.device_id
             if not settings.DEV:
                 phone.send_message(message)
-            print 'PUSH MESSAGE to %s: %s' % (self.device_id, message)
         else:
             # OK, we don't have an iphone
             PushMessage(user=self, message=message).save()
-            print 'FAKE MESSAGE to %s: %s' % (self.device_id, message)
 
     def complete_pending_actions(self, match=False):
         if not match:
@@ -152,43 +150,29 @@ class User(models.Model):
         #in_range = in_range.filter(pos_time__gt=(datetime.now()-timedelta(hours=1)))
         # ... who is not this user:
         in_range = in_range.exclude(device_id=self.device_id)
-        print 'ppl in range: %s' % in_range.all()
         # ... who shares one of our magnets:
         soulmates = in_range.filter(magnets__in = self.magnets.all()).distinct()
-        print 'soulmates: %s' % soulmates.all()
         # ... who does not have a running match with this user already:
         soulmates_unmatched = soulmates
         for match in self.matches.exclude(status__gte=90):
             soulmates_unmatched = soulmates_unmatched.exclude(matches=match)
-        print 'unmatched soulmates: %s' % soulmates_unmatched.all()
         #exclude the matches that timed out less than 60 minutes ago:
         #status:90 last_activity < jetzt-60m
         for match in self.matches.filter(status=90).exclude(last_activity__lt=(datetime.now()-timedelta(minutes=MATCH_QUARANTINE))):
             soulmates_unmatched = soulmates_unmatched.exclude(matches=match)
-        print 'unmatched soulmates not in quarantine: %s' % soulmates_unmatched.all()
         # now trigger a matching Process for those guys:
         # actually only for one of them. The first one for now, later we should add some better priorization:
         #for mate in soulmates_unmatched.all():
         if soulmates_unmatched.all().count()>=1:
             mate = soulmates_unmatched.all()[0]
-            print ('initiate location based match')
-            print ("hi")
             magnets = Magnet.objects.filter(users=self).filter(users=mate)
-            print magnets.all().count()
             if magnets.all().count()>=1:
-                print ("bla")
                 match = Match()
-                print ("blub")
                 #todo: do they share more than one magnet?
                 match.magnet=magnets.all()[0]
-                print ("dsfdsf")
                 match.save()
-                print ("hallo")
-                print (mate)
-                print (self)
                 match.users=(self, mate)
                 match.initiate()
-                print (match)
 
 
 class MagnetComponent(models.Model):
@@ -433,12 +417,10 @@ class Match(models.Model):
             return {}
 
     def delete_old_matches():
-        print('removing old matches(set status=90)')
         thres = datetime.now()-timedelta(minutes=MATCH_TIMEOUT)
         old = Match.objects.filter(
                 last_activity__lt=(thres)).exclude(status__gte=90).all()
         for match in old:
-            print 'removing ' + match.__unicode__()
             match.status='90'
             match.save()
 

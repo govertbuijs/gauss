@@ -201,7 +201,6 @@ class MagnetList(ResponseMixin, View):
     #renderers = DEFAULT_RENDERERS
 
     def get(self, request, uid):
-        #print [e.headline for e in Entry.objects.all()]
         magnets = Magnet.objects.filter(users=uid)
         if magnets.count()>=1:
             dict = {'Success':'True'}
@@ -295,8 +294,6 @@ class MagnetAdd(ResponseMixin, View):
                 #maybe there is a match possible already?
                 user.check_for_match()
                 """
-                print ("Initiate match")
-
                 match = Match()
                 match.magnet=magnet
                 #match.place=""
@@ -352,7 +349,6 @@ class MagnetComponentView(ResponseMixin, View):
     renderers = [JSONRenderer]
 
     def get(self, request, uid, follows=False):
-        #print [e.headline for e in Entry.objects.all()]
         if not(follows) or follows=="0":
             components = MagnetComponent.objects.filter(follows=None)
         else:
