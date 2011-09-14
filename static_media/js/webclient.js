@@ -371,6 +371,23 @@ function getMatchList() {
                 result = data.Results[result];
                 if (matchIgnoreList.indexOf(result.id) > -1) { continue; }
 
+                // XXX TODO Move this to a separate function??
+                if (result.suggestion=='meeting' && result.your_status=='accepted') {
+                    getMeetingLocation(result.id);
+                    matchIgnoreList.push(result.id);
+
+                    // Just clear the table in stead fo waiting, looks nicer
+                    $("#matchTable").find("tr:gt(0)").remove();
+                    continue;
+                } else if (result.suggestion=='chat' && result.your_status=='accepted') {
+                    getRoomId(result.id);
+                    matchIgnoreList.push(result.id);
+
+                    // Just clear the table in stead fo waiting, looks nicer
+                    $("#matchTable").find("tr:gt(0)").remove();
+                    continue;
+                }
+
                 var status = {  'pendingaction': result.pendingaction,
                                 'pendingactionid':result.pendingactionid,
                                 'suggestion': result.suggestion,
@@ -389,9 +406,6 @@ function getMatchList() {
                         $('<button>').attr('id', button.key +'_'+ result.id).text(button.label)
                         .click([result.pendingactionid, button.key, result.id], matchAction)
                         ).appendTo(row);
-
-                    //console.log(buttonId +' | '+ button.key +' | '+ button.label +' | '+
-                    //            result.pendingaction +' | '+ result.pendingactionid +' | '+ result.wishid);
                 }
 
                 row.appendTo('#matchTable');
@@ -422,21 +436,6 @@ function getMatchList() {
                         .append( $('<td>').html('your_status') )
                         .append( $('<td colspan="2">').html(result.your_status) )
                         .appendTo('#matchTable');
-                }
-
-                // XXX TODO Move this to a separate function??
-                if (result.suggestion=='meeting' && result.your_status=='accepted') {
-                    getMeetingLocation(result.id);
-                    matchIgnoreList.push(result.id);
-
-                    // Just clear the table in stead fo waiting, looks nicer
-                    $("#matchTable").find("tr:gt(0)").remove();
-                } else if (result.suggestion=='chat' && result.your_status=='accepted') {
-                    getRoomId(result.id);
-                    matchIgnoreList.push(result.id);
-
-                    // Just clear the table in stead fo waiting, looks nicer
-                    $("#matchTable").find("tr:gt(0)").remove();
                 }
             }
         } else {
@@ -477,7 +476,7 @@ function getPushMessages() {
     function successFunction (data, textStatus, jqXHR) {
         if (data.Success == 'True') {
             for (message in data.Messages) {
-                $('<div>').html(data.Messages[message].message).appendTo('#messageList');
+                $('<div>').html(data.Messages[message].message + ', PARAS: ' +  data.Messages[message].params).appendTo('#messageList');
             }
         } else {
             consoleLog(data.Error, 0); 

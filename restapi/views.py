@@ -21,9 +21,6 @@ from gauss.restapi.models import (Match, Magnet, MagnetComponent, User,
 from gauss.restapi.models import MATCH_SUGGESTION_CHOICES, get_value
 
 
-Match.delete_old_matches()
-#phone = iPhone()
-##phone.get_feedback()
 """
 Disclaimer: This code is work in progress, and meant for a concept-proof prototype
 """
@@ -51,17 +48,16 @@ def tail(f, n, offset=None):
 
 def help(request):
     from django.shortcuts import render_to_response
-    
+    Match.delete_old_matches()
     return render_to_response('help.html')
 
 
 def log(request):
-    from django.shortcuts import render_to_response
-    import commands
-    #log = commands.getoutput('cat /root/django/gauss/screenlog.0')
+    """
+    Dump Log to webpage
+    """
     f = open('/root/django/gauss/screenlog.0', 'r')
     loglist = tail(f, 100)[0]
-    #loglist = ['dfdsf', 'dsfsdf']
     del loglist[:1]
     loglist.reverse()
     loglist = [elem for elem in loglist if (elem.find('gausslog') < 0 and elem.find('CONTROL-C') < 0 and elem.find('DeprecationWarning') < 0 and elem.find('help') < 0)]
@@ -116,7 +112,7 @@ class UserAdd(ResponseMixin, View):
                                               "newid": new.device_id}))
         else:
             return self.render(Response(200, {"Success": "False",
-                                              "Error": "Nope"}))
+                                          "Error": "Nope"}))
 
 class UserDelete(ResponseMixin, View):
     renderers = [JSONRenderer]
@@ -169,9 +165,8 @@ class UserUpdate(ResponseMixin, View):
             try:
                 user.__getattribute__(attribute)
             except AttributeError, e:
-                error = "Invalid Attribute: %s" % attribute
                 return self.render(Response(200, {"Success": "False",
-                                                  "Error": error, }))
+                                              "Error": "Invalid Attribute: " + attribute}))
             value = request.GET[attribute]
             if value in ['0', 'false', 'False']:
                 value = False
@@ -201,6 +196,7 @@ class MagnetList(ResponseMixin, View):
     #renderers = DEFAULT_RENDERERS
 
     def get(self, request, uid):
+        #print [e.headline for e in Entry.objects.all()]
         magnets = Magnet.objects.filter(users=uid)
         if magnets.count()>=1:
             dict = {'Success':'True'}
@@ -240,28 +236,20 @@ class MagnetAdd(ResponseMixin, View):
         except LookupError, e:
             return self.render(Response(200, {"Success": "False",
                                               "Error": "Missing parameters"}))
-        if not comp1.order=="1" or not comp2.order=="2" or not comp3.order=="3":
-            error = "This is no valid Magnet; "\
-                    "comp1 needs to be a Component of order 1, etc."
+        if not(comp1.order=="1") or not(comp2.order=="2") or not(comp3.order=="3"):
             return self.render(Response(200, {"Success": "False",
-                                              "Error": error, }))
+                                              "Error": "This is no valid Magnet; comp1 needs to be a Component of order 1, etc."}))
 
-        # Is this combination unique?
-        # If no, does the user already have this magnet?
+        # Is this combination unique? If no, does the user already have this magnet?
         just_add_relation=False
-        thismagnets = Magnet.objects.filter(
-                components=comp1).filter(
-                components=comp2).filter(
-                components=comp3)
-
+        thismagnets = Magnet.objects.filter(components=comp1).filter(components=comp2).filter(components=comp3)
         otherUser=False
         if thismagnets.count()>0:
             for magnet in thismagnets:
                 for x in magnet.users.iterator():
                     if x.device_id==uid:
-                        error = "The User already has this magnet"
                         return self.render(Response(200, {"Success": "False",
-                                                          "Error": error, }))
+                                                          "Error": "The User already has this magnet"}))
                     else:
                         # there is another user who has this magnet:
                         otherUser=x
@@ -280,7 +268,7 @@ class MagnetAdd(ResponseMixin, View):
                 new.full_clean()
             except ValidationError, e:
                 return self.render(Response(200, {"Success": "False",
-                                                  "Error":"Validation failed"}))
+                                                  "Error": "Validation failed"}))
             #return Response(status.HTTP_200_CREATED)
             return self.render(Response(200, {"Success": "True",
                                               "MagnetId": new.id}))
@@ -401,23 +389,28 @@ class MatchView(ResponseMixin, View):
                     action = ''
                     actionId=''
                 # What Buttons are to be shown in the app?
-                if match.status == "1" or match.status=="3":
-                    buttons = [{'key': 'ignore', 'label': 'Ignore'}]
+                buttons = []
+                if match.status == "1" or (match.status=="3" and match.status!=''):
+                    buttons.append({'key': 'ignore',
+                                    'label': 'Ignore'})
                     choices = match.choices.split('|')
+                    for choice in choices:
+                        buttons.append({'key': choice,
+                                        'label': get_value(MATCH_SUGGESTION_CHOICES, choice)})
 
-                    for choice in choices:
-                        label = get_value(MATCH_SUGGESTION_CHOICES, choice)
-                        buttons.append({'key': choice, 'label': label, })
-                elif match.status =="2":
-                    buttons = [ {'key': 'decline', 'label': 'Decline'},
-                                {'key': 'accept', 'label': 'Accept'}]
+                elif match.status =="2" and action=='2':
+
                     choices = match.choices.split('|')
                     for choice in choices:
-                        label = 'Suggest %s instead' % get_value(
-                                            MATCH_SUGGESTION_CHOICES, choice)
-                        buttons.insert(0, {'key': choice, 'label': label, })
-                else:
-                    buttons = []
+                        if choice:
+                            buttons.append({'key': choice,
+                                            'label': 'Suggest %s instead' % get_value(MATCH_SUGGESTION_CHOICES, choice)})
+
+                    buttons.append({'key': 'decline',
+                                    'label': 'Decline'})
+
+                    buttons.append({'key': 'accept',
+                                'label': 'Accept'})
 
                 #User-specific Status:
                 your_status = ''
@@ -446,7 +439,6 @@ class MatchView(ResponseMixin, View):
                 dict.update({'Results': results})
 
         dict.update({'Success': 'True'})
-
         response = Response(200, dict)
         return self.render(response)
 
@@ -465,7 +457,13 @@ class MatchGetMeetingspot(ResponseMixin, View):
             return self.render(Response(200, {"Success": "False",
                                               "Error": "Invalid Match"}))
         match = match[0]
-        dict = {'results' : match.get_meetingspot()}
+        if not match.place:
+            print 'no Place yet, will find one...'
+            match.get_meetingspot()
+        dict = {'results' : {'name' : match.place.name,
+                             'icon' : match.place.icon,
+                             'geometry' : {'location' : {'lat' : match.place.pos_lat,
+                                                         'lng' : match.place.pos_long}}}}
         dict.update({'Success': 'True'})
         response = Response(200, dict)
         return self.render(response)
@@ -507,12 +505,10 @@ class ActionDo(ResponseMixin, View):
                                               "Error": "Invalid User"}))
         otherUser = False
         for user in match.users.all():
-            if user.device_id != uid:
-                otherUser = user
-        if not otherUser:
-            error = "The match is invalid: no 2nd User"
+            if user.device_id!=uid: otherUser = user
+        if not(otherUser):
             return self.render(Response(200, {"Success": "False",
-                                              "Error": error }))
+                                             "Error": "The match is invalid: no 2nd User"}))
 
         # suggestion needed?
         # If the User completes this action, it means he made a suggestion,
@@ -537,9 +533,7 @@ class ActionDo(ResponseMixin, View):
                 match.save()
 
                 # Push notification:
-                message = 'SUGGESTION\n Another user wants '
-                message += get_value(MATCH_SUGGESTION_CHOICES, suggestion)
-                otherUser.push_message(message)
+                otherUser.push_message(match.magnet.__unicode__() + ': Suggestion\n Another user wants ' + get_value(MATCH_SUGGESTION_CHOICES, suggestion), match)
                 return self.render(Response(200, {"Success": "True"}))
             else:
                 return self.render(Response(200, {"Success": "False",
@@ -552,9 +546,8 @@ class ActionDo(ResponseMixin, View):
             try:
                 answer = request.GET['reply']
             except LookupError, e:
-                error = "Need more parameters"
                 return self.render(Response(200, {"Success": "False",
-                                                  "Error": error, }))
+                                                  "Error": "Need more parameters"}))
 
             # what is the answer?
             if answer == 'accept':
@@ -569,13 +562,10 @@ class ActionDo(ResponseMixin, View):
                 otherUser.clear_pending_actions(match)
 
                 # Push notification:
-                message = 'MEET\n The other user accepts '
-                message += get_value(MATCH_SUGGESTION_CHOICES, suggestion)
-                otherUser.push_message(message)
+                otherUser.push_message(match.magnet.__unicode__() + ': Meeting\n The other user accepts ' + get_value(MATCH_SUGGESTION_CHOICES, suggestion), match)
 
-                msg = "Accepted, other User notified"
                 return self.render(Response(200, {"Success": "True",
-                                                  "Message": msg, }))
+                                                  "Message": "Accepted, other User notified"}))
 
             elif answer in match.choices.split('|'):
                 # Decline and suggest something different?
@@ -594,24 +584,20 @@ class ActionDo(ResponseMixin, View):
                     match.add_action('2', otherUser)
                     match.save()
 
-                    message = 'COUNTER-SUGGESTION\n Another user rather wants '
-                    message += get_value(MATCH_SUGGESTION_CHOICES, suggestion)
-                    otherUser.push_message(message)
 
-                    msg = "Declined and Suggestion posed, other User notified"
+                    otherUser.push_message(match.magnet.__unicode__() + ': Counter suggestion\n Another user rather wants ' + get_value(MATCH_SUGGESTION_CHOICES, suggestion), match)
                     return self.render(Response(200, {"Success": "True",
-                                                      "Message": msg, }))
+                                                      "Message": "Declined and Suggestion posed, other User notified"}))
 
                 else:
                     return self.render(Response(200, {"Success": "False",
-                                            "Error": "Suggestion not valid"}))
+                                                      "Error": "Suggestion not valid"}))
 
 
             elif answer=='decline':
-                # Just Decline, no suggestion:
-                # Is there a suggestion choice left?
-                # if not, the Connection Process was a failure.
-                if match.choices != '':
+                #Just Decline, no suggestion:
+                #Is there a suggestion choice left? if not, the Connection Process was a failure.
+                if match.choices!='':
                     #update Actions:
                     thisUser.complete_pending_actions(match)
                     otherUser.clear_pending_actions(match)
@@ -622,13 +608,9 @@ class ActionDo(ResponseMixin, View):
                     match.add_action('1', otherUser)
                     match.save()
 
-                    message = 'DECLINED\n The other user does not want to '
-                    message += get_value(MATCH_SUGGESTION_CHOICES, suggestion)
-                    otherUser.push_message(message)
-
-                    msg = "Declined, other User notified"
+                    otherUser.push_message(match.magnet.__unicode__() + ': Declined\n The other user does not want to ' + get_value(MATCH_SUGGESTION_CHOICES, suggestion), match)
                     return self.render(Response(200, {"Success": "True",
-                                                      "Message": msg}))
+                                                      "Message": "Declined, other User notified"}))
                 # No Choice left:
                 else:
                     #update Actions:
@@ -639,10 +621,8 @@ class ActionDo(ResponseMixin, View):
                     #match.suggestion=''
                     match.abort('93', thisUser)
 
-                    message = "Declined, no connection choice left -> aborted,"
-                    message += " other User notified"
                     return self.render(Response(200, {"Success": "True",
-                                                      "Message": message, }))
+                                                      "Message": "Declined, no connection choice left -> aborted, other User notified"}))
 
             else:
                 return self.render(Response(200, {"Success": "False",
@@ -662,7 +642,10 @@ class EchoView(ResponseMixin, View):
         # ID of Arne's Gauss installation:
         #phone.udid='8bcf83a61e174bc0cb09280006801a845d52dd61d87aab6a74d54b44c941419a'
         phone.udid=uid
-        if phone.send_message(message):
+        custom_params = {'matchId' : 123,
+                             'magnetId' : 321,
+                             'magnetName' : 'DoktorSpielen'}
+        if phone.send_message(message, custom_params=custom_params):
             return self.render(Response(200, {"Success": "True",
                                               "payload": phone.payload}))
         else:
@@ -683,7 +666,7 @@ class PushMessageView(ResponseMixin, View):
 
         messages = []
         for message in PushMessage.objects.filter(user=user):
-            messages.append({'id': message.id, 'message': message.message})
+            messages.append({'id': message.id, 'message': message.message, 'params': message.custom_params})
             # We need to display the messages only once
             message.delete()
 
