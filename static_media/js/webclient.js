@@ -89,6 +89,7 @@ function cleanupOldUser() {
     matchIgnoreList = [];
     matchStatus = [];
     localLog = [];
+    chatRoomId = undefined;
 
     // Remove messages
     $("#messageList").find("div").remove();
