@@ -7,7 +7,7 @@ from gauss.restapi.models import User, Match
 
 
 CHAT_TIME_OUT = 15 * 60
-CHAT_SUSPEND = 2 * 60
+CHAT_SUSPEND = 5 * 60
 
 
 class Room(models.Model):
@@ -28,6 +28,11 @@ class Room(models.Model):
 
         if self.created + timedelta(seconds=CHAT_SUSPEND) < datetime.now():
             messages.append("This connection is suspended")
+            messages.append("The window will close in %s minutes" %
+                            (CHAT_TIME_OUT/60 - CHAT_SUSPEND/60))
+
+        if not messages:
+            messages.append("You can chat for %s minutes" % (CHAT_SUSPEND/60))
 
         return True, messages
 

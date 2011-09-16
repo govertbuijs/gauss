@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from googlemaps import GoogleMaps
 import json
+from math import radians, sin, cos, atan2, sqrt
 import urllib
 
 from django.conf import settings
