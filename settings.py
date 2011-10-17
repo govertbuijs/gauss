@@ -25,9 +25,21 @@ DATABASES = {
     }
 }
 
+# Local time zone for this installation. Choices can be found here:
+# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+# although not all choices may be available on all operating systems.
+# If running in a Windows environment this must be set to the same as your
+# system time zone.
 TIME_ZONE = 'Europe/Berlin'
+
+# Language code for this installation. All choices can be found here:
+# http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
+
 SITE_ID = 1
+
+# If you set this to False, Django will make some optimizations so as not
+# to load the internationalization machinery.
 USE_I18N = True
 
 MEDIA_ROOT = os.path.join(PROJECT_ROOT, "static_media")
@@ -56,7 +68,12 @@ MIDDLEWARE_CLASSES = (
 
 ROOT_URLCONF = 'gauss.urls'
 
-TEMPLATE_DIRS = (os.path.join(PROJECT_ROOT, "templates") )
+TEMPLATE_DIRS = (
+    os.path.join(PROJECT_ROOT, "templates")
+    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
+)
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -74,6 +91,8 @@ INSTALLED_APPS = (
 )
 
 IPHONE_APN_PUSH_CERT = os.path.join(PROJECT_ROOT, "apns-dev.pem")
+IPHONE_APN_PUSH_CERT_SANDBOX = os.path.join(PROJECT_ROOT, "apns-dev_sandbox.pem")
+IPHONE_APN_PUSH_CERT_PROD = os.path.join(PROJECT_ROOT, "apns-dev_prod.pem")
 
 #INTERNAL_IPS = ('127.0.0.1','255.255.255.255')
 

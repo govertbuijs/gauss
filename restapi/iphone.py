@@ -84,10 +84,11 @@ class iPhone(models.Model):
             passed_socket.write(msg)
         else:
             host_name = 'gateway.sandbox.push.apple.com' if sandbox else 'gateway.push.apple.com'
+            certificate = settings.IPHONE_APN_PUSH_CERT_SANDBOX if sandbox else settings.IPHONE_APN_PUSH_CERT_PROD
             s = socket()
             c = ssl.wrap_socket(s,
                                 ssl_version=ssl.PROTOCOL_SSLv3,
-                                certfile=settings.IPHONE_APN_PUSH_CERT)
+                                certfile=certificate)
             c.connect((host_name, 2195))
             c.write(msg)
             c.close()

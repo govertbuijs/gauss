@@ -5,7 +5,7 @@ from gauss.restapi.views import (MagnetList, MagnetAdd, MagnetDelete, MatchView,
                                  UserDelete, UserDeleteAll, UserSetpos,
                                  UserUpdate, MagnetComponentView,
                                  MagnetComponentView, ActionDo,
-                                 PushMessageView)
+                                 PushMessageView, FeedbackAdd)
 
 
 UID = '(?P<uid>[A-Za-z0-9_]*)'
@@ -68,4 +68,7 @@ urlpatterns = patterns('',
 
     url(r'^%s/pushmessages/list/?$' % UID,
         PushMessageView.as_view(), name='push-message'),
+
+    url(r'^%s/feedback/add/?$' % UID,
+        FeedbackAdd.as_view(), name='feedack'),
 )

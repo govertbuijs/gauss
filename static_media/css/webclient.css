@@ -12,6 +12,7 @@ th {
 div#header {
   clear: both;
   height: 25px;
+/*  width: 1200px; */
 }
 div#left {
   display: none;

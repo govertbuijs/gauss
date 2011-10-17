@@ -64,6 +64,7 @@ class User(models.Model):
     pos_long = models.DecimalField('Longitude', max_digits=9, decimal_places=6, default=0)
     pos_time = models.DateTimeField('Time of the last position update', auto_now_add=True)
     auth_facebook = models.BooleanField('The User has Facebook auth', default=False)
+    sandbox = models.BooleanField('The User uses the sandbox push server', default=False)
 
 
     def __unicode__(self):
@@ -117,7 +118,7 @@ class User(models.Model):
         if self.device_id.__len__()>=5:
             phone.udid=self.device_id
             if not settings.DEV:
-                phone.send_message(message, custom_params=custom_params)
+                phone.send_message(message, custom_params=custom_params, sandbox=self.sandbox)
         else:
             # OK, we don't have an iphone
             param_string = ', '.join([k+'='+str(v) for (k,v) in custom_params.items()])
@@ -185,26 +186,51 @@ class User(models.Model):
         # ... who shares one of our magnets:
         soulmates = in_range.filter(magnets__in = self.magnets.all()).distinct()
         # ... who does not have a running match with this user already:
-        soulmates_unmatched = soulmates
-        for match in self.matches.exclude(status__gte=90):
-            soulmates_unmatched = soulmates_unmatched.exclude(matches=match)
+		# (not necessary as we may only have one match at a time anyway)
+        #soulmates_unmatched = soulmates
+        #for match in self.matches.exclude(status__gte=90):
+        #    soulmates_unmatched = soulmates_unmatched.exclude(matches=match)
         #exclude the matches that timed out less than 60 minutes ago:
         #status:90 last_activity < jetzt-60m
         for match in self.matches.filter(status=90).exclude(last_activity__lt=(datetime.now()-timedelta(minutes=MATCH_QUARANTINE))):
-            soulmates_unmatched = soulmates_unmatched.exclude(matches=match)
+            soulmates = soulmates.exclude(matches=match)
         # now trigger a matching Process for those guys:
-        # actually only for one of them. The first one for now, later we should add some better priorization:
-        #for mate in soulmates_unmatched.all():
-        if soulmates_unmatched.all().count()>=1:
-            mate = soulmates_unmatched.all()[0]
+        # actually only for one of them. later we should add some better priorization:
+        matched = False
+        for mate in soulmates.all():
+        #if soulmates_unmatched.all().count()>=1:
+        #    mate = soulmates_unmatched.all()[0]
+            # does the other user already have a match?
+            if mate.get_match():
+                continue
+            # get the shared magnets:
+
             magnets = Magnet.objects.filter(users=self).filter(users=mate)
-            if magnets.all().count()>=1:
+            #soulmates = in_range.filter(magnets__in = self.magnets.all()).distinct()
+            #search_users= [self, mate]
+            #magnets = Magnet.objects.filter(users=self, users=mate)
+            #if magnets.all().count()>=1:
+            #cont = False
+            for magnet in magnets.all():
+                # do we already have a running match for this magnet? (not necessary as we may only have one match at a time anyway)
+                #current_matches = self.matches.exclude(status__gte=90)
+                #for current_match in current_matches:
+                #    if current_match.magnet == magnet:
+                #        cont = True
+                #if cont:
+                #    cont = False
+                #    continue
+
                 match = Match()
                 #todo: do they share more than one magnet?
-                match.magnet=magnets.all()[0]
+                match.magnet = magnet
                 match.save()
                 match.users=(self, mate)
                 match.initiate()
+                matched=True
+                break
+            if matched:
+                break
 
 
 class MagnetComponent(models.Model):
@@ -346,7 +372,6 @@ class Match(models.Model):
             message = self.magnet.__unicode__() + ': Match\n' + self.magnet.__unicode__()
             user.push_message(message, self)
 
-
     def add_action(self, action, user):
         new = Action()
         new.user = user
@@ -468,7 +493,7 @@ class Match(models.Model):
         if code=='90':
             #Match expired. notify both users:
             for user in self.users.all():
-                user.push_message(self.magnet.__unicode__() + ': Cancelled\n The Match for %s has expired after %s min' % (self.magnet.__unicode__(), str(MATCH_TIMEOUT)), self)
+                user.push_message('The magnetism for %s has faded!' % self.magnet.__unicode__(), self)
 
         #Another match?
         for user in self.users.iterator():
@@ -513,3 +538,11 @@ class PushMessage(models.Model):
     creation_time = models.DateTimeField('time of creation', auto_now_add=True)
     change_time = models.DateTimeField('time of last change', auto_now=True)
 
+class Feedback(models.Model):
+    """
+    User Feedback
+    """
+    user = models.ForeignKey(User)
+    subject = models.CharField(max_length=150)
+    body = models.TextField()
+    creation_time = models.DateTimeField('date of creation', auto_now_add=True)
