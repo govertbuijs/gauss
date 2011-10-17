@@ -11,6 +11,8 @@ from djangorestframework.renderers import JSONRenderer
 from djangorestframework.response import Response
 from djangorestframework import status
 
+from django.template.loader import get_template
+from django.template import Context
 
 from django.forms.models import model_to_dict
 from django.http import HttpResponse
@@ -73,7 +75,8 @@ def log(request):
 
 class UserView(ResponseMixin, View):
     """REST Interface for the User Class
-    Uses djangorestframework's RendererMixin to provide support for multiple output formats.
+    Uses djangorestframework's RendererMixin to provide support
+    for multiple output formats.
     Methods:
     get(uid, uid2):
         has no real use yet
@@ -305,6 +308,7 @@ class MagnetAdd(ResponseMixin, View):
                                               "MagnetId": magnet.id,
                                               "Message": msg, }))
 
+
 class MagnetDelete(ResponseMixin, View):
     renderers = [JSONRenderer]
     def get(self, request, uid, magnetid):
@@ -320,6 +324,7 @@ class MagnetDelete(ResponseMixin, View):
             match.abort('92', user)
         return self.render(Response(200, {"Success": 'True',
                                               "Message": "deleted"}))
+
 
 class MagnetComponentView(ResponseMixin, View):
     """ REST interface for the Magnet Class
@@ -347,10 +352,7 @@ class MagnetComponentView(ResponseMixin, View):
             results = []
 
             for component in components:
-                #dict.update({component.id : {'name': component.name}})
                 results.append({'id' : component.id, 'name': component.name})
-
-                #results.update({component.id : {'name': component.name}})
             dict.update({'Results': results})
             response = Response(200, dict)
         else:
@@ -398,9 +400,9 @@ class MatchView(ResponseMixin, View):
                                     'label': 'Ignore'})
                     choices = match.choices.split('|')
                     for choice in choices:
-                        label = get_value(MATCH_SUGGESTION_CHOICES, choice
+                        label = get_value(MATCH_SUGGESTION_CHOICES, choice)
                         buttons.append({'key': choice,
-                                        'label': label)})
+                                        'label': label})
 
                 elif match.status=="2" and action=='2':
 
@@ -409,7 +411,6 @@ class MatchView(ResponseMixin, View):
                         if choice:
                             label = 'Suggest %s instead' % \
                                     get_value(MATCH_SUGGESTION_CHOICES, choice)
-                                    })
                             buttons.append({'key': choice,
                                             'label': label, })
 
@@ -684,9 +685,9 @@ class EchoView(ResponseMixin, View):
                          'magnetName' : 'DoktorSpielen'}
         if phone.send_message(message, custom_params=custom_params):
             return self.render(Response(200, {"Success": "True",
-                                              "payload": phone.payload}))
+                                              "payload": phone.payload, }))
         else:
-            return self.rende r(Response(200, {"Success": "False"}))
+            return self.render(Response(200, {"Success": "False", }))
 
 
 class PushMessageView(ResponseMixin, View):
@@ -739,3 +740,13 @@ class FeedbackAdd(ResponseMixin, View):
                                               "Error": "Validation failed"}))
         response = {"Success": "True"}
         return self.render(Response(200, response))
+
+
+def FeedbackList(request):
+    t = get_template('feedback.html')
+
+    results = []
+    for result in Feedback.objects.order_by('-creation_time'):
+        results.append(result)
+
+    return HttpResponse( t.render(Context({'feedback_list': results})) )

@@ -2,7 +2,7 @@
 body {
   margin: 5px;
   padding: 5px;
-  overflow: hidden;
+/*  overflow: hidden; */
 }
 th {
   text-align: left;
@@ -44,6 +44,11 @@ div#content2 {
   clear: both;
   padding: 0 0 20px 0;
 }
+div#content3 {
+  display: none;
+  clear: both;
+  padding: 0 0 20px 0;
+}
 div#footer {
   display: none;
   clear: both;
@@ -77,4 +82,27 @@ div#localLog {
 button#toggleLocalLog {
   display: none;
   float: right;
+}
+
+input#feedbackSubject {
+  width: 500px;
+  margin-left: 2px;
+  /*
+  height: 500px;
+  */
+}
+input#feedbackBody {
+  /*
+  width: 600px;    
+  height: 500px;
+  */
+}
+button#feedbackSubmit {
+  vertical-align: top;
+}
+
+div#googleMap {
+  width: 400px;
+  height: 400px;
+  margin-top: 10px;
 }

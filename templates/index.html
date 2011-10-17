@@ -46,7 +46,7 @@
     <div id="content0">
       <b>Chat</b>
       <div id="chatList"></div>
-      <input id="chatInput">
+      <input id="chatInput"/>
       <button id="chatSend" type="button">Send</button>
     </div>
 
@@ -58,12 +58,19 @@
       <b>Local log</b>
       <div id="localLog"></div>
     </div>
+    <div id="content3">
+      <b>Feedback</b> <a href="/feedback_list" target="_blank">Feedback list</a><br/>
+      <input id="feedbackSubject"/>
+      <button id="feedbackSubmit" type="button">Submit</button>
+      <br/>
+      <textarea rows="3" cols="60" id="feedbackBody" ></textarea>
+    </div>
 
     <div id="footer">
       Latitude : <input type="text" id="latInput"/>
       Longtitude : <input type="text" id="lonInput"/>
       <button id="setLocation" type="button">Set location</button>
-      <div align="left" id="googleMap" style="width:400px; height:400px; margin-top: 10px;"/>
+      <div id="googleMap"/>
     </div>
   </body>
 </html>

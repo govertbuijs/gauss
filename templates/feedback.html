@@ -1,0 +1,33 @@
+<html>
+  <head>
+    <title>List of feedback messages</title>
+    <style type="text/css">
+      td {
+        padding: 5px;
+      }
+      th {
+        min-width: 100px;
+      }
+    </style>
+
+  </head>
+  <body>
+    <table id="feedbackTable">
+      <tr>
+        <th>Datetime</th>
+        <th>User</th>
+        <th>Subject</th>
+        <th>Body</th>
+      </tr>
+
+      {% for feedback in feedback_list %}
+      <tr>
+        <td>{{ feedback.creation_time }}</td>
+        <td>{{ feedback.user_id }}</td>
+        <td>{{ feedback.subject }}</td>
+        <td>{{ feedback.body }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </body>
+</html>

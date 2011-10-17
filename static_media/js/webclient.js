@@ -24,6 +24,7 @@ var userUpdateQuery = '/user/update/';
 var matchQuery = '/match/list/';
 var matchMeetingQuery = '/match/getmeetingspot/';
 var actionQuery = '/action/do/';
+var feedbackAddQuery = '/feedback/add/'
 var pushmessagesQuery = '/pushmessages/list/';
 var pushmessagesDeleteQuery = '/pushmessages/delete/';
 var chatRoomQuery = '/chat/chatroom/';
@@ -56,10 +57,39 @@ var localLog = [];
 // When do we remove the meetingMarker
 // Rename log and localLog
 
-//////////////////////////////////////////////////////////////////////////////
+function addFeedback() {
+    consoleLog('Sending feedback', 1);
+    var url = '/' + deviceId + feedbackAddQuery;
+    var data = {'subject': $('#feedbackSubject').val(), 
+                'body': $('#feedbackBody').val(), };
+
+    $.ajax({
+        type: 'POST',
+        url: url,
+        dataType: 'json',
+        success: successFunction,
+        error: ajaxError,
+        data: data,
+    });
+
+    function successFunction(data, textStatus, jqXHR) {
+        if (data.Success == "True") {
+            consoleLog('Feedback send', 1);
+            logLocalAction('Feedback send : ' + $('#feedbackSubject').val()
+                                        +' / '+ $('#feedbackBody').val() );
+        } else {
+            consoleLog('Sending feedback failed', 1);
+            logLocalAction('Sending feedback failed');
+        }
+        $('#feedbackSubject').val('');
+        $('#feedbackBody').val('');
+    }
+}
+
+///////////////////////////////////////////// /////////////////////////////////
 // General stuff
 //////////////////////////////////////////////////////////////////////////////
-function registerHandlers() {
+function registerHandlers() { 
     consoleLog('Registering event handlers', 1);
 
     // Device ID radio buttons
@@ -68,6 +98,8 @@ function registerHandlers() {
     $('#addMagnet').click(addMagnet);
     // User wants to set it's location
     $('#setLocation').click(setLocation);
+    // User wants to set it's location
+    $('#feedbackSubmit').click(addFeedback);
     // Give non-developers the opportunity to view localLogs
     $("#toggleLocalLog").click(toggleLocalLogs);
     // User wants to send a chat message
@@ -111,6 +143,7 @@ function showUI() {
     } else {
         $('#toggleLocalLog').css('display', 'block');
     }
+    $('#content3').css('display', 'block');
     $('#footer').css('display', 'block');
     google.maps.event.trigger(googleMap, 'resize');
 }
@@ -204,12 +237,7 @@ function getUserInfo(func) {
     
             if (lat!=0 || lon!=0) { 
                 var latlng = new google.maps.LatLng(lat, lon);
-
-                placeUserMarker(latlng);
-                googleMap.setCenter(latlng);
-
-                $('#latInput').val(lat);
-                $('#lonInput').val(lon);
+                placeUserMarker(latlng, true);
             } else {
                 removeUserMarker();
             }
@@ -592,15 +620,20 @@ function setupGoogleMap() {
     });
 };
 
-function placeUserMarker(location) {
+function placeUserMarker(location, centerMap) {
     if (googleMarkerUser == undefined) {
         markerOptions = { position: location, map: googleMap, title:"You are here!", };
         googleMarkerUser = new google.maps.Marker(markerOptions);
     } else {
         googleMarkerUser.setPosition(location);
     }
-}
+    if (centerMap) {
+        googleMap.setCenter(location);
+    }
 
+    $('#latInput').val(location.Ma);
+    $('#lonInput').val(location.Na);
+}
 function removeUserMarker() {
     consoleLog('Removing the user marker', 1);
     if (googleMarkerUser != undefined) {
@@ -608,6 +641,7 @@ function removeUserMarker() {
         googleMarkerUser = undefined;
     }
 }
+
 function placeMeetingMarker(location, title) {
     removeMeetingMarker();
     googleMap.setCenter(location);
