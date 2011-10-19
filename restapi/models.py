@@ -333,23 +333,24 @@ class Match(models.Model):
         Set the initial status, and send Notifications to the Users.
         This starts the User matching process.
         """
+
         # Add Choices:
         choices = []
         for choice in MATCH_SUGGESTION_CHOICES:
-            # Facebook option only if both users are authed on FB
-            if choice[0] == 'facebook':
-                if filter(lambda x: not x.auth_facebook, self.users.all()):
+            if filter(lambda x: len(x.device_id) >= 5, self.users.all()):
+                # Don't offer chat option to iPhone clients
+                if choice[0] == 'chat':
                     continue
-            # Chat option only if both users are webclient
-            elif choice[0] == 'chat':
-                if filter(lambda x: len(x.device_id) >= 5, self.users.all()):
+            else:
+                # Don't offer FB option to webclients
+                if choice[0] == 'facebook':
                     continue
             choices.append(choice[0])
         self.choices = '|'.join(choices)
 
         #depr: does one of the user already have a running match?
-        # if yes, enqueue this one:
-        self.status = '1'
+        #if yes, enqueue this one:
+        self.status='1'
         #for user in self.users.all():
         #    if user.get_match():
         #        self.status='0'
