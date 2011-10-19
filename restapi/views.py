@@ -726,12 +726,13 @@ class FeedbackAdd(ResponseMixin, View):
             return self.render(Response(200, response))
 
         try:
+            uuid = request.POST['uuid']
             subject = request.POST['subject']
             body = request.POST['body']
         except:
             response = {"Success": "False", "Error": "Missing parameters", }
             return self.render(Response(200, response))
-        new = Feedback(subject=subject, body=body, user=user)
+        new = Feedback(subject=subject, body=body, user=user, uuid=uuid)
         new.save()
         try:
             new.full_clean()

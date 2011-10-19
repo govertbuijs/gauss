@@ -9,13 +9,14 @@
         min-width: 100px;
       }
     </style>
-
+    <meta http-equiv="refresh" content="1">
   </head>
   <body>
     <table id="feedbackTable">
       <tr>
         <th>Datetime</th>
         <th>User</th>
+        <th>UUID</th>
         <th>Subject</th>
         <th>Body</th>
       </tr>
@@ -24,6 +25,7 @@
       <tr>
         <td>{{ feedback.creation_time }}</td>
         <td>{{ feedback.user_id }}</td>
+        <td>{{ feedback.uuid }}</td>
         <td>{{ feedback.subject }}</td>
         <td>{{ feedback.body }}</td>
       </tr>

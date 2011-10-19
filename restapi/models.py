@@ -341,10 +341,6 @@ class Match(models.Model):
                 # Don't offer chat option to iPhone clients
                 if choice[0] == 'chat':
                     continue
-            else:
-                # Don't offer FB option to webclients
-                if choice[0] == 'facebook':
-                    continue
             choices.append(choice[0])
         self.choices = '|'.join(choices)
 
@@ -544,6 +540,7 @@ class Feedback(models.Model):
     User Feedback
     """
     user = models.ForeignKey(User)
+    uuid = models.CharField(max_length=255)
     subject = models.CharField(max_length=150)
     body = models.TextField()
     creation_time = models.DateTimeField('date of creation', auto_now_add=True)

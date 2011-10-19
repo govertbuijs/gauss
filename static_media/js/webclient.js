@@ -61,7 +61,8 @@ function addFeedback() {
     consoleLog('Sending feedback', 1);
     var url = '/' + deviceId + feedbackAddQuery;
     var data = {'subject': $('#feedbackSubject').val(), 
-                'body': $('#feedbackBody').val(), };
+                'body': $('#feedbackBody').val(), 
+                'uuid': 'dummy_uuid_' + deviceId, };
 
     $.ajax({
         type: 'POST',
