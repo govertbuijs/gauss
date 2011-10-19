@@ -5,6 +5,9 @@
       td {
         padding: 5px;
       }
+      td.under {
+        padding-bottom: 15px;
+      }
       th {
         min-width: 100px;
       }
@@ -12,13 +15,11 @@
     <meta http-equiv="refresh" content="30">
   </head>
   <body>
-    <table id="feedbackTable">
+   <table id="feedbackTable">
       <tr>
         <th>Datetime</th>
         <th>User</th>
         <th>UUID</th>
-        <th>Subject</th>
-        <th>Body</th>
       </tr>
 
       {% for feedback in feedback_list %}
@@ -26,8 +27,13 @@
         <td>{{ feedback.creation_time }}</td>
         <td>{{ feedback.user_id }}</td>
         <td>{{ feedback.uuid }}</td>
-        <td>{{ feedback.subject }}</td>
-        <td>{{ feedback.body }}</td>
+      </tr>
+      <tr> 
+        <td/>
+        <td colspan=2>{{ feedback.subject }}</td>
+      <tr>
+        <td/>
+        <td colspan=2>{{ feedback.body }}</td>
       </tr>
       {% endfor %}
     </table>
