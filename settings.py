@@ -102,4 +102,10 @@ DEBUG_TOOLBAR_CONFIG = {
     'SHOW_TOOLBAR_CALLBACK': custom_show_toolbar,
 }
 
+MATCH_TIMEOUT = 30
+MATCH_QUARANTINE = 60
+MATCH_RANGE = 500
 
+# Right now there is no "Matching Time" or "Interaction Time",
+# just a timeout that is reset every time there one of the users does something.
+# So if one user does something every 29 minutes, the match will never fade...

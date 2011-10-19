@@ -585,14 +585,12 @@ class ActionDo(ResponseMixin, View):
                 otherUser.clear_pending_actions(match)
 
                 # Push notification:
-                msg = match.magnet.__unicode__() + \
-                      ': Meeting\n The other user accepts ' + \
-                      get_value(MATCH_SUGGESTION_CHOICES, suggestion)
-                otherUser.push_message(msg, match)
-
-                msg = "Accepted, other User notified"
+                msg = "Magnet: %s\n%s Accepted!" % (
+                      match.magnet.__unicode__(),
+                      dict(MATCH_SUGGESTION_CHOICES).get(suggestion))
                 return self.render(Response(200, {"Success": "True",
                                                   "Message": msg, }))
+
 
             elif answer in match.choices.split('|'):
                 # Decline and suggest something different?
