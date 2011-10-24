@@ -521,8 +521,7 @@ class Match(models.Model):
         EventLog().add_event(
             body='removing old matches(set status=90)',
             where='models.Match.delete_old_matcher, line=520')
-        old =
-        Match.objects.filter(last_activity__lt=(datetime.now()-timedelta(seconds=settings.MATCH_TIMEOUT))).exclude(status__gte=90).all()
+        old = Match.objects.filter(last_activity__lt=(datetime.now()-timedelta(seconds=settings.MATCH_TIMEOUT))).exclude(status__gte=90).all()
         for match in old:
             EventLog().add_event(
                 body='removing ' + match.__unicode__(),
