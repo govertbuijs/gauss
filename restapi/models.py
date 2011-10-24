@@ -4,7 +4,7 @@ from datetime import timedelta
 #from telepathy._generated.errors import DoesNotExist
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from decimal import *
+from decimal import Decimal
 
 
 
@@ -429,7 +429,7 @@ class Match(models.Model):
         from googlemaps import GoogleMaps
         import urllib
         import json
-        from math import *
+        from math import radians, sin, cos, atan2, sqrt
 
 
         user1 = self.users.all()[0]
