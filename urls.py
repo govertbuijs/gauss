@@ -4,8 +4,13 @@ from django.conf import settings
 from django.contrib import admin
 admin.autodiscover()
 
+from django.views.generic.simple import redirect_to
+from django.views.static import serve
+
 
 urlpatterns = patterns('',
+    ('^$',              redirect_to, {'url': 'http://getgauss.com'}),
+
     (r'^admin/',        include(admin.site.urls)),
     (r'^admin/doc/',    include('django.contrib.admindocs.urls')),
 
