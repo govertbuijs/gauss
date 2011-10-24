@@ -209,8 +209,7 @@ class User(models.Model):
         #print 'unmatched soulmates: %s' % soulmates_unmatched.all()
         #exclude the matches that timed out less than 60 minutes ago:
         #status:90 last_activity < jetzt-60m
-        for match in
-            self.matches.filter(status=90).exclude(last_activity__lt=(datetime.now()-timedelta(seconds=settings.MATCH_QUARANTINE))):
+        for match in self.matches.filter(status=90).exclude(last_activity__lt=(datetime.now()-timedelta(seconds=settings.MATCH_QUARANTINE))):
             soulmates = soulmates.exclude(matches=match)
         EventLog().add_event(
             body='unmatched soulmates not in quarantine: %s' % soulmates.all(),
