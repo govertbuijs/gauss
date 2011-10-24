@@ -130,3 +130,4 @@ class iPhone(models.Model):
 
     def __unicode__(self):
         return u"iPhone %s" % self.udid
+

@@ -30,7 +30,7 @@ ACTION_CHOICES = (
 MATCH_SUGGESTION_CHOICES = (
     ('meeting', 'Meet Up Now'),
     ('facebook', 'Share Facebook Profiles'),
-    ('chat', 'Chat direct'),
+    #('chat', 'Chat direct'),
 )
 
 PLACE_TYPE_CHOICES =(
@@ -361,10 +361,10 @@ class Match(models.Model):
         # Add Choices:
         y = []
         for x in MATCH_SUGGESTION_CHOICES:
-            # Don't offer chat option to iPhone clients
-            if filter(lambda z: len(z.device_id) >= 5, self.users.all()):
-                if x[0] == 'chat':
-                    continue
+            ## Don't offer chat option to iPhone clients
+            #if filter(lambda z: len(z.device_id) >= 5, self.users.all()):
+            #    if x[0] == 'chat':
+            #        continue
             # Facebook option only if both users are authed on FB: (diabled for now
             if (x[0]=='facebook' and self.users.all()[0].auth_facebook and self.users.all()[1].auth_facebook) or x[0]!='facebook' or 1==1:
                 y.append(x[0])
