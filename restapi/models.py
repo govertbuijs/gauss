@@ -209,8 +209,7 @@ class User(models.Model):
         #print 'unmatched soulmates: %s' % soulmates_unmatched.all()
         #exclude the matches that timed out less than 60 minutes ago:
         #status:90 last_activity < jetzt-60m
-        for match in
-            self.matches.filter(status=90).exclude(last_activity__lt=(datetime.now()-timedelta(seconds=MATCH_QUARANTINE))):
+        for match in self.matches.filter(status=90).exclude(last_activity__lt=(datetime.now()-timedelta(seconds=MATCH_QUARANTINE))):
             soulmates = soulmates.exclude(matches=match)
         EventLog().add_event(
             body='unmatched soulmates not in quarantine: %s' % soulmates.all(),
@@ -521,8 +520,7 @@ class Match(models.Model):
         EventLog().add_event(
             body='removing old matches(set status=90)',
             where='models.Match.delete_old_matcher, line=520')
-        old =
-        Match.objects.filter(last_activity__lt=(datetime.now()-timedelta(seconds=MATCH_TIMEOUT))).exclude(status__gte=90).all()
+        old = Match.objects.filter(last_activity__lt=(datetime.now()-timedelta(seconds=MATCH_TIMEOUT))).exclude(status__gte=90).all()
         for match in old:
             EventLog().add_event(
                 body='removing ' + match.__unicode__(),
@@ -614,7 +612,6 @@ class EventLog(models.Model):
     def add_event(self, body, where):
         try:
             where_string = str(where)
-            raise
             body_string = str(body)
 
             EventLog(body=body_string, where=where_string).save()
