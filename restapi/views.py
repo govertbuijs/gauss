@@ -478,7 +478,9 @@ class MatchGetMeetingspot(ResponseMixin, View):
                                               "Error": "Invalid Match"}))
         match = match[0]
         if not match.place:
-            print 'no Place yet, will find one...'
+            EventLog().add_event(
+                body='no Place yet, will find one...',
+                where='views.MatchGetMeetingspot.get ,line=483')
             match.get_meetingspot()
         dict = {'results' : {'name' : match.place.name,
                              'icon' : match.place.icon,
@@ -584,7 +586,7 @@ class ActionDo(ResponseMixin, View):
                 # update match
                 EventLog().add_event(
                     body='reply accepted',
-                    where='views.ActionDo.get ,line=586')
+                    where='views.ActionDo.get ,line=589')
                 suggestion=match.suggestion
                 #match.suggestion=''
                 match.status='4'
@@ -680,10 +682,10 @@ class EchoView(ResponseMixin, View):
         phone.udid=uid
         EventLog().add_event(
             body=uid,
-            where='views.EchoView.get ,line=682')
+            where='views.EchoView.get ,line=685')
         EventLog().add_event(
             body=message,
-            where='views.EchoView.get ,line=685')
+            where='views.EchoView.get ,line=688')
         custom_params = {'matchId' : 123,
                              'magnetId' : 321,
                              'magnetName' : 'DoktorSpielen'}
