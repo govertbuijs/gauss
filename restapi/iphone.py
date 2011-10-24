@@ -9,6 +9,9 @@ import ssl
 import binascii
 import json
 
+from gauss.restapi.models import EventLog
+
+
 class iPhone(models.Model):
     """
     Represents an iPhone used to push
@@ -92,6 +95,9 @@ class iPhone(models.Model):
             c.connect((host_name, 2195))
             c.write(msg)
             c.close()
+            EventLog().add_event(
+                body='Push message sent',
+                where='iphone.Iphone.send_message, line=100')
 
         return True
 
@@ -106,6 +112,19 @@ class iPhone(models.Model):
                             ssl_version=ssl.PROTOCOL_SSLv3,
                             certfile=settings.IPHONE_APN_PUSH_CERT)
         c.connect((host_name, 2196))
+
+        EventLog().add_event(
+            body=repr(c.getpeername()),
+            where='iphone.Iphone.get_feedback, line=118')
+        EventLog().add_event(
+            body=c.cipher(),
+            where='iphone.Iphone.get_feedback, line=121')
+        EventLog().add_event(
+            body=c.getpeercert(),
+            where='iphone.Iphone.get_feedback, line=124')
+        EventLog().add_event(
+            body='feedback: ' + c.read(),
+            where='iphone.Iphone.get_feedback, line=127')
         c.close()
         return True
 

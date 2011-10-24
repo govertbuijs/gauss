@@ -32,13 +32,20 @@ class APNSProtocol(Protocol):
 
 class APNSClientFactory(ClientFactory):
     def buildProtocol(self, addr):
+		EventLog().add_event(
+	        body='',
+	        where='pushmessage.APNSClientFactory.buildProtocol, line=37')
         return APNSProtocol()
 
     def clientConnectionLost(self, connector, reason):
-        pass
+		EventLog().add_event(
+	        body='',
+	        where='pushmessage.APNSClientFactory.clientConnectionLost, line=43')
 
     def clientConnectionFailed(self, connector, reason):
-        pass
+		EventLog().add_event(
+	        body='',
+	        where='pushmessage.APNSClientFactory.clientConnectionFailed, line=48')
 
 if __name__ == '__main__':
     reactor.connectSSL(APNS_SERVER_HOSTNAME, 

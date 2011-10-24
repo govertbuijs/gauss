@@ -1,0 +1,36 @@
+<html>
+  <head>
+    <title>List of events</title>
+    <style type="text/css">
+      td {
+        padding: 5px;
+      }
+      td.under {
+        padding-bottom: 15px;
+      }
+      th {
+        min-width: 100px;
+      }
+    </style>
+    <meta http-equiv="refresh" content="1">
+  </head>
+  <body>
+   <table id="eventlogTable">
+      <tr>
+        <th>Datetime</th>
+        <th>Where</th>
+      </tr>
+
+      {% for event in eventlog %}
+      <tr>
+        <td>{{ event.creation_time }}</td>
+        <td>{{ event.where }}</td>
+      </tr>
+      <tr>
+        <td/>
+        <td>{{ event.body }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </body>
+</html>

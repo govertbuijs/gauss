@@ -2,8 +2,10 @@
 import os
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 
-# XXX TODO Merge with Felix's code
-DEV = False
+if PROJECT_ROOT.find('_dev')<0:
+    DEV = False
+else:
+    DEV = True
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -66,7 +68,10 @@ MIDDLEWARE_CLASSES = (
     #'debug_toolbar.middleware.DebugToolbarMiddleware',
 )
 
-ROOT_URLCONF = 'gauss.urls'
+if DEV:
+    ROOT_URLCONF = 'gauss_dev.urls'
+else:
+    ROOT_URLCONF = 'gauss.urls'
 
 TEMPLATE_DIRS = (
     os.path.join(PROJECT_ROOT, "templates")

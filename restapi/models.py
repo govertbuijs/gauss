@@ -1,13 +1,11 @@
-from datetime import datetime, timedelta
-from decimal import Decimal
-from googlemaps import GoogleMaps
-import json
-from math import radians, sin, cos, atan2, sqrt
-import urllib
-
 from django.conf import settings
+from datetime import datetime
+from datetime import timedelta
+#from telepathy._generated.errors import DoesNotExist
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from decimal import *
+
 
 
 MATCH_STATUS_CHOICES = (
@@ -40,11 +38,12 @@ PLACE_TYPE_CHOICES =(
     ('intersection', 'Self-found intersection')
 )
 
-
 def get_value(dict, key):
     for x in dict:
         if x[0]==key:
             return x[1]
+    
+#print "hallo"
 
 
 class User(models.Model):
@@ -69,10 +68,20 @@ class User(models.Model):
             return self.device_id
 
     def get_match(self):
-        try:
-            # not aborted and not enqueued:
-            return self.matches.filter(status__lt=90).get(status__gt=0)
-        except ObjectDoesNotExist, e:
+        # not aborted and not enqueued:
+        matches = self.matches.filter(status__lt=90).all()
+        EventLog().add_event(
+            body=matches,
+            where='models.User.get_match, line=76')
+        if matches.count() >=1:
+            EventLog().add_event(
+                body=matches.count(),
+                where='models.User.get_match, line=80')
+            return True
+        else:
+            EventLog().add_event(
+                body='keine aktiven matches im moment',
+                where='models.User.get_match, line=85')
             return False
 
 
@@ -113,14 +122,18 @@ class User(models.Model):
         if self.device_id.__len__()>=5:
             phone.udid=self.device_id
             if not settings.DEV:
-                phone.send_message(message, custom_params=custom_params,
-                                   sandbox=self.sandbox)
+                phone.send_message(message, custom_params=custom_params, sandbox=self.sandbox)
+            EventLog().add_event(
+                body='PUSH MESSAGE to %s: %s (%s)' % (self.device_id, message, self.sandbox),
+                where='models.User.push_message, line=129')
         else:
             # OK, we don't have an iphone
-            param_string = ', '.join([k+'='+str(v)
-                                      for (k,v) in custom_params.items()])
-            PushMessage(user=self, message=message,
-                        custom_params=param_string).save()
+            param_string = ', '.join([k+'='+str(v) for (k,v) in custom_params.items()])
+            PushMessage(user=self, message=message, custom_params=param_string).save()
+            EventLog().add_event(
+                body='FAKE MESSAGE to %s: %s' % (self.device_id, message),
+                where='models.User.push_message, line=136')
+
 
     def complete_pending_actions(self, match=False):
         if not match:
@@ -140,7 +153,7 @@ class User(models.Model):
             action.delete()
 
     def set_position(self, lat, long):
-
+        
         self.pos_lat=Decimal(lat)
         self.pos_long=Decimal(long)
         self.pos_time=datetime.now()
@@ -167,8 +180,7 @@ class User(models.Model):
         range = Decimal(settings.MATCH_RANGE)
         # convert to lat/long degrees (approx):
         range_lat = Decimal(range / 111000)
-        # todo: implement calculation by arc projection or other,
-        # better approximation
+        # todo: implement calculation by arc projection or other, better approximation
         # (current value is only correct for latitude of about 50)
         range_long = Decimal(range / 71000)
 
@@ -177,32 +189,34 @@ class User(models.Model):
         lat_max = self.pos_lat + range_lat
         long_min = self.pos_long - range_long
         long_max = self.pos_long + range_long
-        in_range = User.objects.filter(pos_lat__range=(lat_min, lat_max)
-                              ).filter(pos_long__range=(long_min, long_max))
+        in_range = User.objects.filter(pos_lat__range=(lat_min, lat_max)).filter(pos_long__range=(long_min, long_max))
         #todo ... whose position is not obsolete:
-        #in_range = in_range.filter(pos_time__gt=(
-        #                                   datetime.now()-timedelta(hours=1)))
+        #in_range = in_range.filter(pos_time__gt=(datetime.now()-timedelta(hours=1)))
         # ... who is not this user:
         in_range = in_range.exclude(device_id=self.device_id)
+        EventLog().add_event(
+            body='ppl in range: %s' % in_range.all(),
+            where='models.User.check_for_match, line=200')
         # ... who shares one of our magnets:
         soulmates = in_range.filter(magnets__in = self.magnets.all()).distinct()
-        # ... who does not have a running match with this user already:
-		# (not necessary as we may only have one match at a time anyway)
+        EventLog().add_event(
+            body='soulmates: %s' % soulmates.all(),
+            where='models.User.check_for_match, line=205')
+        # ... who does not have a running match with this user already: (not necessary as we may only have one match at a time anyway)
         #soulmates_unmatched = soulmates
         #for match in self.matches.exclude(status__gte=90):
         #    soulmates_unmatched = soulmates_unmatched.exclude(matches=match)
+        #print 'unmatched soulmates: %s' % soulmates_unmatched.all()
         #exclude the matches that timed out less than 60 minutes ago:
         #status:90 last_activity < jetzt-60m
-
-        timeout = datetime.now()-timedelta(minutes=settings.MATCH_QUARANTINE)
-        matches = self.matches.filter(status=90
-                             ).exclude(last_activity__lt=timeout)
-
-        for match in matches:
+        for match in self.matches.filter(status=90).exclude(last_activity__lt=(datetime.now()-timedelta(minutes=MATCH_QUARANTINE))):
             soulmates = soulmates.exclude(matches=match)
+        EventLog().add_event(
+            body='unmatched soulmates not in quarantine: %s' % soulmates.all(),
+            where='models.User.check_for_match, line=218')
+
         # now trigger a matching Process for those guys:
-        # actually only for one of them.
-        # later we should add some better priorization:
+        # actually only for one of them. later we should add some better priorization:
         matched = False
         for mate in soulmates.all():
         #if soulmates_unmatched.all().count()>=1:
@@ -210,18 +224,20 @@ class User(models.Model):
             # does the other user already have a match?
             if mate.get_match():
                 continue
+            EventLog().add_event(
+                body='initiate location based match',
+                where='models.User.check_for_match, line=231')
             # get the shared magnets:
 
-            magnets = Magnet.objects.filter(users=self).filter(users=mate)
-            #soulmates =
-            #   in_range.filter(magnets__in = self.magnets.all()).distinct()
+            magnets = Magnet.objects.filter(users=self)
+            magnets = magnets.filter(users=mate)
+            #soulmates = in_range.filter(magnets__in = self.magnets.all()).distinct()
             #search_users= [self, mate]
             #magnets = Magnet.objects.filter(users=self, users=mate)
             #if magnets.all().count()>=1:
             #cont = False
             for magnet in magnets.all():
-                # do we already have a running match for this magnet?
-                # (not necessary as we may only have one match at a time anyway)
+                # do we already have a running match for this magnet? (not necessary as we may only have one match at a time anyway)
                 #current_matches = self.matches.exclude(status__gte=90)
                 #for current_match in current_matches:
                 #    if current_match.magnet == magnet:
@@ -232,7 +248,7 @@ class User(models.Model):
 
                 match = Match()
                 #todo: do they share more than one magnet?
-                match.magnet = magnet
+                match.magnet=magnet
                 match.save()
                 match.users=(self, mate)
                 match.initiate()
@@ -267,14 +283,13 @@ class Magnet(models.Model):
     A Magnet is a Combination of three MagnetComponents
     one ore more Users can have a Magnet
     """
-    creation_time = models.DateTimeField('date of creation', 
-            auto_now_add=True, auto_now=True)
+    creation_time = models.DateTimeField('date of creation', auto_now_add=True)
     components = models.ManyToManyField(MagnetComponent)
     users = models.ManyToManyField(User, related_name='magnets')
 
     def __unicode__(self):
         return (self.components.get(order=3).name)
-
+        
 
     class Meta:
         verbose_name = 'Magnet'
@@ -290,10 +305,8 @@ class Place(models.Model):
     icon = models.CharField(max_length=100)
     gp_reference = models.CharField('Google Places reference', max_length=255)
     gp_id = models.CharField('Google Places ID', max_length=50)
-    pos_lat = models.DecimalField('Latitude', max_digits=13,
-                                  decimal_places=10, default=0)
-    pos_long = models.DecimalField('Longitude', max_digits=13,
-                                   decimal_places=10, default=0)
+    pos_lat = models.DecimalField('Latitude', max_digits=13, decimal_places=10, default=0)
+    pos_long = models.DecimalField('Longitude', max_digits=13, decimal_places=10, default=0)
     gp_types = models.CharField('Google Places Types', max_length=50)
 
     def __unicode__(self):
@@ -314,23 +327,18 @@ class Match(models.Model):
         A comma seperated list of the connection options between the two users.
         Might be changed into a one-to-many relation in the future
     suggestion:
-        if the status is '2':'suggestion pending',
-        the current connection suggestion is stored here until the other
-        User accepts or declines it.
+        if the status is '2':'suggestion pending', the current connection suggestion is stored here until the other User accepts or declines it.
     actions:
-        the completed(done=True) and pending(done=False) Actions that are
-        required of the Users
+        the completed(done=True) and pending(done=False) Actions that are required of the Users
     """
     creation_time = models.DateTimeField('date of creation', auto_now_add=True)
     last_activity = models.DateTimeField('Time of last activity', auto_now=True)
     users = models.ManyToManyField(User, related_name='matches')
     magnet = models.ForeignKey(Magnet, related_name='matches')
-    place = models.ForeignKey(Place, related_name='matches', null=True,
-                              on_delete=models.SET_NULL)
+    place = models.ForeignKey(Place, related_name='matches', null=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=5, choices=MATCH_STATUS_CHOICES)
-    choices = models.CharField(max_length=255)
-    suggestion = models.CharField(max_length=20,
-                                  choices=MATCH_SUGGESTION_CHOICES, blank=True)
+    choices = models.CharField(max_length=20)
+    suggestion = models.CharField(max_length=20, choices=MATCH_SUGGESTION_CHOICES, blank=True)
 
     class Meta:
         verbose_name = 'Match'
@@ -341,31 +349,34 @@ class Match(models.Model):
         for user in self.users.all():
             user_list.append(user.__unicode__())
 
+        #return ' + '.join(user_list) + ' like ' + self.magnet.__unicode__()
         return (' + '.join(user_list) + ' like ' + self.magnet.__unicode__() + '(' + get_value(MATCH_STATUS_CHOICES, self.status) + ')')
 
     def initiate(self):
         """
-        There is a new Match.
-        Set the initial status, and send Notifications to the Users.
+        There is a new Match. Set the initial status, and send Notifications to the Users.
         This starts the User matching process.
         """
 
         # Add Choices:
-        choices = []
-        for choice in MATCH_SUGGESTION_CHOICES:
-            if filter(lambda x: len(x.device_id) >= 5, self.users.all()):
-                # Don't offer chat option to iPhone clients
-                if choice[0] == 'chat':
+        y = []
+        for x in MATCH_SUGGESTION_CHOICES:
+            # Don't offer chat option to iPhone clients
+            if filter(lambda z: len(z.device_id) >= 5, self.users.all()):
+                if x[0] == 'chat':
                     continue
-            choices.append(choice[0])
-        self.choices = '|'.join(choices)
+            # Facebook option only if both users are authed on FB: (diabled for now
+            if (x[0]=='facebook' and self.users.all()[0].auth_facebook and self.users.all()[1].auth_facebook) or x[0]!='facebook' or 1==1:
+                y.append(x[0])
+        self.choices = '|'.join(y)
 
-        #depr: does one of the user already have a running match?
-        #if yes, enqueue this one:
+
+        #depr: does one of the user already have a running match? if yes, enqueue this one:
         self.status='1'
         #for user in self.users.all():
         #    if user.get_match():
         #        self.status='0'
+
 
         # Save
         self.save()
@@ -379,11 +390,9 @@ class Match(models.Model):
         phone = iPhone()
         for user in self.users.all():
             self.add_action('1', user)
-
             #send push notification:
             phone.udid=user.device_id
-            message = '%s: Match\n%s' % (self.magnet.__unicode__(),
-                                         self.magnet.__unicode__())
+            message = self.magnet.__unicode__() + ': Match\n' + self.magnet.__unicode__()
             user.push_message(message, self)
 
     def add_action(self, action, user):
@@ -411,12 +420,18 @@ class Match(models.Model):
 
     def get_meetingspot(self):
         '''
-        Find a spot for a corner meeting by calculating the route between the
-        two users and using the middle(duration-wise) turn spot
-        then we try to find a POI near that spot.
-        Or maybe the other way around: using street corner as fallback.
-        To be tested...
+        Find a spot for a corner meeting by calculating the route between the two users and using
+        the middle(duration-wise) turn spot
+        then we try to find a POI near that spot
+        Or maybe the other way around: using street corner as fallback. To be tested...
         '''
+        
+        from googlemaps import GoogleMaps
+        import urllib
+        import json
+        from math import *
+
+
         user1 = self.users.all()[0]
         user2 = self.users.all()[1]
 
@@ -437,14 +452,30 @@ class Match(models.Model):
         c = 2 * atan2(sqrt(a), sqrt(1-a))
         distance = max(100, int(6371000 * c))
 
+
+        """
+        gmaps = GoogleMaps('ABQIAAAAugs1iPGmwa6gltsUZffRXBSN67B0Fs1re8BfUgkZAnznA0PgcRQx3nac4is21Ox1UvJrNlgRPpkYvA')
+        pos1 = gmaps.latlng_to_address(user1.pos_lat, user1.pos_long).encode('utf-8')
+        pos2 = gmaps.latlng_to_address(user2.pos_lat, user2.pos_long).encode('utf-8')
+        dirs = gmaps.directions(pos1, pos2)
+
+        total = dirs['Directions']['Duration']['seconds']
+        accuDur=0
+
+        for step in dirs['Directions']['Routes'][0]['Steps']:
+            accuDur += step['Duration']['seconds']
+            if accuDur >= (total/2):
+                break
+        """
+
         # Increase the search radius for a place until something is found:
-        # todo: implement fallback if there is no place anywhere near,
-        # or the google places api does not work.
+        # todo: implement fallback if there is no place anywhere near, or the google places api does not work.
         result = []
         factor=0.15
-        while not result and factor<2:
+        while result.__len__()==0 and factor<2:
             factor = factor + 0.15
             geo_args = {
+               #'location': str(step['Point']['coordinates'][1]) + ',' + str(step['Point']['coordinates'][0]),
                'location': str(dif_lat) + ',' + str(dif_long),
                'sensor': 'false',
                'radius': round(distance*factor),
@@ -455,43 +486,47 @@ class Match(models.Model):
 
             base_url = 'https://maps.googleapis.com/maps/api/place/search/json'
             api_call_url = base_url + '?' + urllib.urlencode(geo_args)
+            #api_call_result = urllib.urlopen(api_call_url).read()
             result = json.load(urllib.urlopen(api_call_url))
             result = result['results']
 
-        if result:
+        if result.__len__()>0:
             result = result[0]
             query = Place.objects.filter(gp_id=result["id"])
             if query.all().count()==0:
-                pos_lat = str(result["geometry"]["location"]["lat"])
-                pos_lon = str(result["geometry"]["location"]["lng"])
-
-                place = Place(name=result["name"],
-                              type='gplaces',
-                              icon=result["icon"],
-                              pos_lat = Decimal(pos_lat),
-                              pos_long=Decimal(pos_lon),
-                              gp_id = result["id"],
-                              gp_reference = result["reference"],
-                              gp_types='|'.join(result['types']))
+                place = Place()
+                place.name=result["name"]
+                place.type='gplaces'
+                place.icon=result["icon"]
+                place.pos_lat=Decimal(str(result["geometry"]["location"]["lat"]))
+                place.pos_long=Decimal(str(result["geometry"]["location"]["lng"]))
+                place.gp_id = result["id"]
+                place.gp_reference = result["reference"]
+                place.gp_types='|'.join(result['types'])
                 place.save()
-                self.place = place
+                self.place=place
                 self.save()
             else:
                 place = query.all()[0]
-                self.place = place
+                self.place=place
                 self.save()
+
 
             return self.place
         else:
             return False
 
     def delete_old_matches():
-        timeout = datetime.now() - timedelta(minutes=settings.MATCH_TIMEOUT)
-        old = Match.objects.filter(last_activity__lt=timeout
-                          ).exclude(status__gte=90).all()
+        EventLog().add_event(
+            body='removing old matches(set status=90)',
+            where='models.Match.delete_old_matcher, line=520')
+        old = Match.objects.filter(last_activity__lt=(datetime.now()-timedelta(minutes=MATCH_TIMEOUT))).exclude(status__gte=90).all()
         for match in old:
+            EventLog().add_event(
+                body='removing ' + match.__unicode__(),
+                where='models.Match.delete_old_matcher, line=525')
             match.abort('90')
-
+            
 
     delete_old_matches = staticmethod(delete_old_matches)
 
@@ -501,21 +536,16 @@ class Match(models.Model):
         self.save()
         if code=='92':
             #get the other user, so we can send him a message:
-            msg = '%s: Cancelled\n The other user deleted the magnet,'\
-                  % self.magnet.__unicode__()
             otherUser = self.get_other_user(user)
-            otherUser.push_message(msg, self)
+            otherUser.push_message(self.magnet.__unicode__() + ': Cancelled\n The other user deleted the magnet,', self)
         elif code=='93':
             #get the other user, so we can send him a message:
-            msg = '%s: Cancelled\n The other user does not want to meet for'\
-                  '%s.' % (self.magnet.__unicode__(), self.magnet.__unicode__())
             otherUser= self.get_other_user(user)
-            otherUser.push_message(msg, self)
+            otherUser.push_message(self.magnet.__unicode__() + ': Cancelled\n The other user does not want to meet for %s.' % self.magnet.__unicode__(), self)
         if code=='90':
             #Match expired. notify both users:
             for user in self.users.all():
-                msg ='The magnetism for %s has faded!'%self.magnet.__unicode__()
-                user.push_message(msg, self)
+                user.push_message('The magnetism for %s has faded!' % self.magnet.__unicode__(), self)
 
         #Another match?
         for user in self.users.iterator():
@@ -569,3 +599,29 @@ class Feedback(models.Model):
     subject = models.CharField(max_length=150)
     body = models.TextField()
     creation_time = models.DateTimeField('date of creation', auto_now_add=True)
+
+
+class EventLog(models.Model):
+    """
+    Logging the various event on the backend
+    """
+    body = models.TextField()
+    where = models.TextField()
+    creation_time = models.DateTimeField('date of creation', auto_now_add=True)
+
+    def add_event(self, body, where):
+        try:
+            where_string = str(where)
+            raise
+            body_string = str(body)
+
+            EventLog(body=body_string, where=where_string).save()
+        except:
+            try:
+                where_string = str(where)
+                EventLog(body="Adding EventLog failed",
+                         where=where_string).save()
+            except:
+                EventLog(body="Adding EventLog failed",
+                         where='models.Eventlog.add_event, line 592').save()
+
