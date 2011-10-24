@@ -107,8 +107,9 @@ DEBUG_TOOLBAR_CONFIG = {
     'SHOW_TOOLBAR_CALLBACK': custom_show_toolbar,
 }
 
-MATCH_TIMEOUT = 30
-MATCH_QUARANTINE = 60
+# Seconds and meters
+MATCH_TIMEOUT = 30 * 60
+MATCH_QUARANTINE = 60 * 60
 MATCH_RANGE = 500
 
 # Right now there is no "Matching Time" or "Interaction Time",
