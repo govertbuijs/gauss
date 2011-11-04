@@ -759,10 +759,16 @@ def FeedbackList(request):
 
 
 def Eventlog(request):
+    try:
+        limit = request.GET.get('limit')
+        limit = int(limit)
+    except:
+        limit = 100
+
     t = get_template('eventlog.html')
 
     results = []
-    for result in EventLog.objects.order_by('-creation_time'):
+    for result in EventLog.objects.order_by('-creation_time')[:limit]:
         results.append(result)
 
     #EventLog().add_event(
