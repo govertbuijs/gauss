@@ -1,9 +1,3 @@
-# -*- coding: iso-8859-15 -*-
-
-
-# latin-1
-# iso-8859-15
-# ascii
 
 import uuid
 import django
@@ -375,6 +369,7 @@ class MagnetComponentView(ResponseMixin, View):
                 #dict.update({component.id : {'name': component.name}})
 
                 name = component.name.replace(u'\xc3\xb6','&#246;')
+                name = name.replace(u'\u00c3\u00b6ln','&#246;')
                 results.append({'id' : component.id, 'name': name })
 
                 #results.update({component.id : {'name': component.name}})
