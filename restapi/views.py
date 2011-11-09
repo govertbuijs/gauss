@@ -1,3 +1,10 @@
+# -*- coding: iso-8859-15 -*-
+
+
+# latin-1
+# iso-8859-15
+# ascii
+
 import uuid
 import django
 from django.core import serializers
@@ -359,15 +366,17 @@ class MagnetComponentView(ResponseMixin, View):
             components = MagnetComponent.objects.filter(follows=None)
         else:
             components = MagnetComponent.objects.filter(follows=follows)
-        
+
         if components.count()>=1:
             dict = {'Success':'True'}
             results = []
 
             for component in components:
                 #dict.update({component.id : {'name': component.name}})
-                results.append({'id' : component.id, 'name': component.name})
-                
+
+                name = component.name.replace(u'\xc3\xb6','&#246;')
+                results.append({'id' : component.id, 'name': name })
+
                 #results.update({component.id : {'name': component.name}})
             dict.update({'Results': results})
             response = Response(200, dict)
