@@ -723,9 +723,6 @@ class PushMessageView(ResponseMixin, View):
 
 
 class FeedbackAdd(ResponseMixin, View):
-    """
-    Displaying and deleting of fake push-messages
-    """
     renderers = [JSONRenderer]
     def post(self, request, uid):
         try:

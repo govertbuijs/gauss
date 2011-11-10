@@ -632,8 +632,8 @@ function placeUserMarker(location, centerMap) {
         googleMap.setCenter(location);
     }
 
-    $('#latInput').val(location.Ma);
-    $('#lonInput').val(location.Na);
+    $('#latInput').val(location.lat());
+    $('#lonInput').val(location.lng());
 }
 function removeUserMarker() {
     consoleLog('Removing the user marker', 1);
